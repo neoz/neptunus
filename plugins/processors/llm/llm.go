@@ -323,6 +323,8 @@ func (p *LLM) Run() {
 			continue
 		}
 
+		completion.Choices[0].Content = strings.TrimSpace(completion.Choices[0].Content)
+
 		e.SetLabel("SystemPrompt", p.SystemPrompt)
 		e.SetLabel("UserPrompt", prompt)
 		e.SetLabel("Response", completion.Choices[0].Content)
