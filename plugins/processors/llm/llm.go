@@ -346,11 +346,25 @@ func (p *LLM) Run() {
 						continue
 					}
 				} else {
+					p.Log.Warn("No key found in JSON data, return {}",
+						slog.Group("event",
+							"id", e.Id,
+							"key", e.RoutingKey,
+						),
+					)
+					if err := e.SetField(p.ResponseTo, "{}"); err != nil {
+						p.Log.Error("failed to set response field",
+							"error", err,
+							slog.Group("event",
+								"id", e.Id,
+								"key", e.RoutingKey,
+							),
+						)
+					}
 					p.handleError(e, now, fmt.Errorf("failed to get JSON key %s", p.JSONModeGetKey))
 					continue
 				}
 			} else {
-
 				if err := e.SetField(p.ResponseTo, data); err != nil {
 					p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
 					continue
