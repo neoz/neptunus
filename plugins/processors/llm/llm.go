@@ -285,6 +285,9 @@ func (p *LLM) Run() {
 			continue
 		}
 
+		prompt = strings.Trim(prompt, "\n")
+		prompt = strings.TrimSpace(prompt)
+
 		// Create context with timeout
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.TimeoutSeconds)*time.Second)
 
