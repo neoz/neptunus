@@ -285,7 +285,6 @@ func (p *LLM) Run() {
 			continue
 		}
 
-		prompt = strings.Trim(prompt, "\n")
 		prompt = strings.TrimSpace(prompt)
 		if prompt == "" {
 			p.handleError(e, now, fmt.Errorf("prompt is empty"))
@@ -359,6 +358,7 @@ func (p *LLM) Run() {
 							"key", e.RoutingKey,
 						),
 					)
+
 					if err := e.SetField(p.ResponseTo, "{}"); err != nil {
 						p.Log.Error("failed to set response field",
 							"error", err,
