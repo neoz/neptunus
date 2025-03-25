@@ -317,6 +317,14 @@ func (p *LLM) Run() {
 			continue
 		}
 
+		e.SetLabel("SystemPrompt", p.SystemPrompt)
+		e.SetLabel("UserPrompt", prompt)
+		e.SetLabel("Response", completion.Choices[0].Content)
+		info, err := toString(completion.Choices[0].GenerationInfo)
+		if err == nil {
+			e.SetLabel("GenerationInfo", info)
+		}
+
 		if p.JSONMode {
 			data := strings.TrimPrefix(completion.Choices[0].Content, "```json")
 			data = strings.TrimSuffix(data, "```")
@@ -338,10 +346,11 @@ func (p *LLM) Run() {
 						continue
 					}
 				} else {
-					p.handleError(e, now, fmt.Errorf("fialed to get JSON key %s, %w", p.JSONModeGetKey, err))
+					p.handleError(e, now, fmt.Errorf("failed to get JSON key %s", p.JSONModeGetKey))
 					continue
 				}
 			} else {
+
 				if err := e.SetField(p.ResponseTo, data); err != nil {
 					p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
 					continue
@@ -353,14 +362,6 @@ func (p *LLM) Run() {
 				p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
 				continue
 			}
-		}
-
-		e.SetLabel("SystemPrompt", p.SystemPrompt)
-		e.SetLabel("UserPrompt", prompt)
-		e.SetLabel("Response", completion.Choices[0].Content)
-		info, err := toString(completion.Choices[0].GenerationInfo)
-		if err == nil {
-			e.SetLabel("GenerationInfo", info)
 		}
 
 		p.Log.Debug("event processed",
