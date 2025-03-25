@@ -8,6 +8,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -68,6 +69,19 @@ func (o *Telegram) Run() {
 
 		if len(event) == 0 {
 			o.Log.Info("event is empty",
+				slog.Group("event",
+					"id", e.Id,
+					"key", e.RoutingKey,
+				),
+			)
+			o.Done <- e
+			o.Observe(metrics.EventRejected, time.Since(now))
+			continue
+		}
+
+		msg := strings.TrimSpace(string(event))
+		if len(msg) == 0 {
+			o.Log.Info("event after trim is empty",
 				slog.Group("event",
 					"id", e.Id,
 					"key", e.RoutingKey,

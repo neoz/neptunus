@@ -133,9 +133,9 @@ func (p *LLM) SaveCSV(systemprompt, prompt, response, model string) error {
 	record := []string{
 		time.Now().Format(time.RFC3339),
 		p.Model,
-		systemprompt,
-		prompt,
-		response,
+		strings.TrimSpace(systemprompt),
+		strings.TrimSpace(prompt),
+		strings.TrimSpace(response),
 		p.LLMType,
 	}
 
