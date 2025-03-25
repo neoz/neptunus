@@ -287,6 +287,10 @@ func (p *LLM) Run() {
 
 		prompt = strings.Trim(prompt, "\n")
 		prompt = strings.TrimSpace(prompt)
+		if prompt == "" {
+			p.handleError(e, now, fmt.Errorf("prompt is empty"))
+			continue
+		}
 
 		// Create context with timeout
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.TimeoutSeconds)*time.Second)
