@@ -70,7 +70,7 @@ func (r *requester) Run() {
 
 			message = strings.TrimSpace(message)
 			if message == "" {
-				r.Log.Error("message is empty",
+				r.Log.Info("message is empty",
 					slog.Group("event",
 						"id", event.Id,
 						"key", event.RoutingKey,
