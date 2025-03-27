@@ -4,6 +4,7 @@ import (
 	_ "github.com/gekatateam/neptunus/plugins/outputs/elasticsearch"
 	_ "github.com/gekatateam/neptunus/plugins/outputs/exec"
 	_ "github.com/gekatateam/neptunus/plugins/outputs/file"
+	_ "github.com/gekatateam/neptunus/plugins/outputs/googlechat"
 	_ "github.com/gekatateam/neptunus/plugins/outputs/grpc"
 	_ "github.com/gekatateam/neptunus/plugins/outputs/http"
 	_ "github.com/gekatateam/neptunus/plugins/outputs/kafka"
