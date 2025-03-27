@@ -35,6 +35,11 @@ type LLM struct {
 	ResponseTo string `mapstructure:"response_to"`
 	// Temperature controls randomness (0.0-1.0)
 	Temperature float64 `mapstructure:"temperature"`
+
+	TopK int `mapstructure:"top_k"`
+	//
+	TopP float64 `mapstructure:"top_p"`
+
 	// MaxTokens maximum number of tokens to generate
 	MaxTokens int `mapstructure:"max_tokens"`
 	// TimeoutSeconds for request
@@ -302,6 +307,14 @@ func (p *LLM) Run() {
 		if p.JSONMode {
 			opts = append(opts, llms.WithJSONMode())
 		}
+
+		//if p.TopP != 0.0 {
+		//	opts = append(opts, llms.WithTopP(p.TopP))
+		//}
+		//
+		//if p.TopK != 0 {
+		//	opts = append(opts, llms.WithTopK(p.TopK))
+		//}
 
 		content := []llms.MessageContent{
 			llms.TextParts(llms.ChatMessageTypeSystem, p.SystemPrompt),
