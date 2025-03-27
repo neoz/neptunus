@@ -340,21 +340,21 @@ func (p *LLM) Run() {
 			if p.JSONModeGetKey != "" {
 				it, err := GetJSONData(data)
 				if err != nil {
-					p.handleError(e, now, fmt.Errorf("failed to parse JSON data: %w", err))
+					p.handleError(e, now, fmt.Errorf("llm failed to parse ouput JSON data: %w", err))
 					continue
 				}
 				if out, ok := it[p.JSONModeGetKey]; ok {
 					bData, err := json.Marshal(out)
 					if err != nil {
-						p.handleError(e, now, fmt.Errorf("failed to marshal value '%s': %w", p.ResponseTo, err))
+						p.handleError(e, now, fmt.Errorf("llm failed to marshal ouput JSON value '%s': %w", p.ResponseTo, err))
 						continue
 					}
 					if err := e.SetField(p.ResponseTo, bData); err != nil {
-						p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
+						p.handleError(e, now, fmt.Errorf("llm failed to set response field '%s': %w", p.ResponseTo, err))
 						continue
 					}
 				} else {
-					p.Log.Warn("No key found in JSON data, return {}",
+					p.Log.Warn("llm No key found in JSON data, return {}",
 						slog.Group("event",
 							"id", e.Id,
 							"key", e.RoutingKey,
@@ -362,7 +362,7 @@ func (p *LLM) Run() {
 					)
 
 					if err := e.SetField(p.ResponseTo, "{}"); err != nil {
-						p.Log.Error("failed to set response field",
+						p.Log.Error("llm failed to set response field",
 							"error", err,
 							slog.Group("event",
 								"id", e.Id,
@@ -370,12 +370,12 @@ func (p *LLM) Run() {
 							),
 						)
 					}
-					p.handleError(e, now, fmt.Errorf("failed to get JSON key %s", p.JSONModeGetKey))
+					p.handleError(e, now, fmt.Errorf("llm failed to get JSON key %s", p.JSONModeGetKey))
 					continue
 				}
 			} else {
 				if err := e.SetField(p.ResponseTo, data); err != nil {
-					p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
+					p.handleError(e, now, fmt.Errorf("llm failed to set response field '%s': %w", p.ResponseTo, err))
 					continue
 				}
 			}
