@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gekatateam/neptunus/core"
@@ -67,10 +68,25 @@ func (r *requester) Run() {
 				continue
 			}
 
+			message = strings.TrimSpace(message)
+			if message == "" {
+				r.Log.Error("message is empty",
+					slog.Group("event",
+						"id", event.Id,
+						"key", event.RoutingKey,
+					),
+				)
+				r.Done <- event
+				r.Observe(metrics.EventFailed, time.Since(now))
+				continue
+			}
+
 			totalBefore := time.Since(now)
 			now = time.Now()
 			err = r.sendMessage(message, threadKey)
-			err = r.sendMessage(threadMessage, threadKey)
+			if threadMessage != "" {
+				err = r.sendMessage(threadMessage, threadKey)
+			}
 			totalAfter := time.Since(now)
 
 			r.Done <- event
