@@ -1,6 +1,7 @@
 package core
 
 import (
+	"maps"
 	"time"
 
 	"github.com/google/uuid"
@@ -98,6 +99,7 @@ func (e *Event) Clone() *Event {
 		Timestamp:  e.Timestamp,
 		RoutingKey: e.RoutingKey,
 		Tags:       make([]string, len(e.Tags)),
+		Errors:     make(Errors, len(e.Errors)),
 		Labels:     make(map[string]string, len(e.Labels)),
 		Data:       mappath.Clone(e.Data),
 	}
@@ -107,9 +109,8 @@ func (e *Event) Clone() *Event {
 	}
 
 	copy(event.Tags, e.Tags)
-	for k, v := range e.Labels {
-		event.Labels[k] = v
-	}
+	copy(event.Errors, e.Errors)
+	maps.Copy(event.Labels, e.Labels)
 
 	return event
 }

@@ -1,8 +1,15 @@
 [settings]
   id = "test.pipeline.cronjob"
   lines = 1
-  run = false
+  run = true
   buffer = 1_000
+
+[vars]
+  log_level = "info"
+
+[[keykeepers]]
+  [keykeepers.self]
+    alias = "self"
 
 [[inputs]]
   [inputs.cronjob]
@@ -13,8 +20,9 @@
       schedule = "0 0 0 * * *"
     # this job generates healthcheck
     [[inputs.cronjob.jobs]]
-      name = "healthcheck.notify"
-      schedule = "@every 10s"
+      name = "@{self:settings.id}"
+      schedule = "@every 30s"
+      force = true
 
 [[processors]]
   [processors.starlark]
@@ -34,6 +42,13 @@ def process(event):
   [processors.starlark.filters.glob]
     routing_key = [ "cronjob.partition.create" ]
 
+[[processors]]
+  [processors.log]
+    level = "@{self:vars.log_level}"
+    [processors.log.serializer]
+      type = "json"
+      data_only = false
+
 [[outputs]]
   [outputs.log]
     level = "info"
@@ -42,18 +57,3 @@ def process(event):
       data_only = false
   [outputs.log.filters.glob]
     routing_key = [ "cronjob.healthcheck.notify" ]
-
-[[outputs]]
-  [outputs.sql]
-    driver = "pgx"
-    dsn = "postgres://postgres:pguser@localhost:5432/postgres"
-    buffer = 1
-    [outputs.sql.on_push]
-      query = '''
-CREATE TABLE IF NOT EXISTS :table_name (
-	EXPEDITION_TYPE TEXT
-	, EXPEDITION_REGION TEXT
-);
-'''
-  [outputs.sql.filters.glob]
-    routing_key = [ "expeditions_*" ]

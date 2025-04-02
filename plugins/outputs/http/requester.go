@@ -19,9 +19,8 @@ import (
 type requester struct {
 	*core.BaseOutput
 
-	lastWrite time.Time
-	uri       string
-	method    string
+	uri    string
+	method string
 
 	successCodes map[int]struct{}
 	headerlabels map[string]string
@@ -43,7 +42,6 @@ func (r *requester) Run() {
 			return
 		}
 		now := time.Now()
-		r.lastWrite = now
 
 		header := make(http.Header)
 		for k, v := range r.headerlabels {
@@ -121,10 +119,6 @@ func (r *requester) Push(e *core.Event) {
 	r.input <- e
 }
 
-func (r *requester) LastWrite() time.Time {
-	return r.lastWrite
-}
-
 func (r *requester) Close() error {
 	close(r.input)
 	return nil
@@ -170,13 +164,15 @@ func (r *requester) perform(uri string, params url.Values, body []byte, header h
 
 	url.RawQuery = params.Encode()
 
-	return r.Retryer.Do("perform query", r.Log, func() error {
+	return r.Retryer.Do("perform request", r.Log, func() error {
 		req, err := http.NewRequest(r.method, url.String(), bytes.NewReader(bytes.Clone(body)))
 		if err != nil {
 			return err
 		}
 
 		req.Header = header
+
+		r.Log.Debug(fmt.Sprintf("request body: %v; request headers: %v; request query: %v", string(body), header, url.RawQuery))
 
 		res, err := r.client.Do(req)
 		if err != nil {

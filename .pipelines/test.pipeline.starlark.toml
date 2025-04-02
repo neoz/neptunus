@@ -18,32 +18,12 @@
 [[processors]]
   [processors.starlark]
     code = '''
-load(".pipelines\\test.star", "test")
-load("time.star", "time")
-
 def process(event):
-    test.apply(event)
-
-    event.setField("duration", time.minute)
-    event.setField("int64", 1337)
-
-    event.getField("duration")
-    event.getField("int64")
-
-    event.setTimestamp(event.getTimestamp() + time.hour)
-
-    event.setField("errors", len(event.getErrors()))
-
-    return [event]
+    event.setField("null", None)
+    if event.getField("null") == None:
+        event.setField("result", "null found")
+    return event
     '''
-
-[[processors]]
-  [processors.deduplicate]
-    idempotency_key = "sender"
-    [processors.deduplicate.redis]
-      shared = true
-      servers = [ "localhost:6379" ]
-      password = "redis"
 
 [[outputs]]
   [outputs.log]
@@ -51,21 +31,10 @@ def process(event):
     [outputs.log.serializer]
       type = "json"
       data_only = false
-    [outputs.log.filters.starlark]
-      code = '''
-def filter(event):
-    if event.getField("from_test") < 37:
-        return True
-    else:
-        return False
-      '''
 
 [[outputs]]
-  [outputs.opensearch]
-    urls = [ "https://localhost:9200" ]
-    username = "admin"
-    password = "admin"
-    batch_buffer = 1_000
-    idle_timeout = "10s"
-    tls_enable = true
-    tls_insecure_skip_verify = true
+  [outputs.log]
+    level = "info"
+    [outputs.log.serializer]
+      type = "json"
+      data_only = false
