@@ -35,6 +35,11 @@ type LLM struct {
 	ResponseTo string `mapstructure:"response_to"`
 	// Temperature controls randomness (0.0-1.0)
 	Temperature float64 `mapstructure:"temperature"`
+
+	TopK int `mapstructure:"top_k"`
+	//
+	TopP float64 `mapstructure:"top_p"`
+
 	// MaxTokens maximum number of tokens to generate
 	MaxTokens int `mapstructure:"max_tokens"`
 	// TimeoutSeconds for request
@@ -133,9 +138,9 @@ func (p *LLM) SaveCSV(systemprompt, prompt, response, model string) error {
 	record := []string{
 		time.Now().Format(time.RFC3339),
 		p.Model,
-		systemprompt,
-		prompt,
-		response,
+		strings.TrimSpace(systemprompt),
+		strings.TrimSpace(prompt),
+		strings.TrimSpace(response),
 		p.LLMType,
 	}
 
@@ -285,6 +290,12 @@ func (p *LLM) Run() {
 			continue
 		}
 
+		prompt = strings.TrimSpace(prompt)
+		if prompt == "" {
+			p.handleError(e, now, fmt.Errorf("prompt is empty"))
+			continue
+		}
+
 		// Create context with timeout
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.TimeoutSeconds)*time.Second)
 
@@ -296,6 +307,14 @@ func (p *LLM) Run() {
 		if p.JSONMode {
 			opts = append(opts, llms.WithJSONMode())
 		}
+
+		//if p.TopP != 0.0 {
+		//	opts = append(opts, llms.WithTopP(p.TopP))
+		//}
+		//
+		//if p.TopK != 0 {
+		//	opts = append(opts, llms.WithTopK(p.TopK))
+		//}
 
 		content := []llms.MessageContent{
 			llms.TextParts(llms.ChatMessageTypeSystem, p.SystemPrompt),
@@ -317,6 +336,16 @@ func (p *LLM) Run() {
 			continue
 		}
 
+		completion.Choices[0].Content = strings.TrimSpace(completion.Choices[0].Content)
+
+		e.SetLabel("SystemPrompt", p.SystemPrompt)
+		e.SetLabel("UserPrompt", prompt)
+		e.SetLabel("Response", completion.Choices[0].Content)
+		info, err := toString(completion.Choices[0].GenerationInfo)
+		if err == nil {
+			e.SetLabel("GenerationInfo", info)
+		}
+
 		if p.JSONMode {
 			data := strings.TrimPrefix(completion.Choices[0].Content, "```json")
 			data = strings.TrimSuffix(data, "```")
@@ -324,26 +353,42 @@ func (p *LLM) Run() {
 			if p.JSONModeGetKey != "" {
 				it, err := GetJSONData(data)
 				if err != nil {
-					p.handleError(e, now, fmt.Errorf("failed to parse JSON data: %w", err))
+					p.handleError(e, now, fmt.Errorf("llm failed to parse ouput JSON data: %w", err))
 					continue
 				}
 				if out, ok := it[p.JSONModeGetKey]; ok {
 					bData, err := json.Marshal(out)
 					if err != nil {
-						p.handleError(e, now, fmt.Errorf("failed to marshal value '%s': %w", p.ResponseTo, err))
+						p.handleError(e, now, fmt.Errorf("llm failed to marshal ouput JSON value '%s': %w", p.ResponseTo, err))
 						continue
 					}
 					if err := e.SetField(p.ResponseTo, bData); err != nil {
-						p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
+						p.handleError(e, now, fmt.Errorf("llm failed to set response field '%s': %w", p.ResponseTo, err))
 						continue
 					}
 				} else {
-					p.handleError(e, now, fmt.Errorf("fialed to get JSON key %s, %w", p.JSONModeGetKey, err))
+					p.Log.Warn("llm No key found in JSON data, return {}",
+						slog.Group("event",
+							"id", e.Id,
+							"key", e.RoutingKey,
+						),
+					)
+
+					if err := e.SetField(p.ResponseTo, "{}"); err != nil {
+						p.Log.Error("llm failed to set response field",
+							"error", err,
+							slog.Group("event",
+								"id", e.Id,
+								"key", e.RoutingKey,
+							),
+						)
+					}
+					p.handleError(e, now, fmt.Errorf("llm failed to get JSON key %s", p.JSONModeGetKey))
 					continue
 				}
 			} else {
 				if err := e.SetField(p.ResponseTo, data); err != nil {
-					p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
+					p.handleError(e, now, fmt.Errorf("llm failed to set response field '%s': %w", p.ResponseTo, err))
 					continue
 				}
 			}
@@ -353,14 +398,6 @@ func (p *LLM) Run() {
 				p.handleError(e, now, fmt.Errorf("failed to set response field '%s': %w", p.ResponseTo, err))
 				continue
 			}
-		}
-
-		e.SetLabel("SystemPrompt", p.SystemPrompt)
-		e.SetLabel("UserPrompt", prompt)
-		e.SetLabel("Response", completion.Choices[0].Content)
-		info, err := toString(completion.Choices[0].GenerationInfo)
-		if err == nil {
-			e.SetLabel("GenerationInfo", info)
 		}
 
 		p.Log.Debug("event processed",
